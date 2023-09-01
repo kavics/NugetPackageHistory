@@ -4,16 +4,6 @@ namespace NugetPackageHistory;
 
 public class Packages
 {
-    /*
-        {
-          "@context": {
-            "@vocab": "http://schema.nuget.org/schema#",
-            "@base": "https://api.nuget.org/v3/registration5-gz-semver2/"
-          },
-          "totalHits": 75,
-          "data": [
-            {
-    */
     [JsonProperty("totalHits")]       public int TotalHits { get; set; }
     [JsonProperty("data")]            public List<LatestPackage> Items { get; set; } = new();
 }

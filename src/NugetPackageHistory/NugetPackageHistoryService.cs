@@ -16,17 +16,27 @@ public class NugetPackageHistoryService
         _logger = logger;
     }
 
-    private string urlForLatestPackages = "https://azuresearch-usnc.nuget.org/query?" +
-              "q=sensenet.&" +
-              "skip=0&" +
-              "take=100&" +
-              "prerelease=true&" +
-              //"supportedFramework=net5.0&" +
-              "semVerLevel=2.0.0";
-
-    public async Task<List<LatestPackage>> GetLatestPackages()
+    public async Task<EcosystemHistory> GetEcosystemHistory(string id)
     {
-        var url = urlForLatestPackages;
+        var packages = new List<PackageHistory>();
+        foreach (var latestPackage in await GetLatestPackages(id))
+        {
+            var registration = await GetPackageRegistration(latestPackage);
+            packages.Add(new PackageHistory(latestPackage, registration));
+        }
+        return new EcosystemHistory(id, packages);
+    }
+
+
+    public async Task<List<LatestPackage>> GetLatestPackages(string id)
+    {
+        var url = "https://azuresearch-usnc.nuget.org/query?" +
+                  $"q={id}.&" +
+                  "skip=0&" +
+                  "take=100&" +
+                  "prerelease=true&" +
+                  //"supportedFramework=net5.0&" +
+                  "semVerLevel=2.0.0"; ;
 
         using HttpClient httpClient = _httpClientFactory.CreateClient();
         var response = await httpClient.GetAsync(url);
@@ -44,18 +54,14 @@ public class NugetPackageHistoryService
         // https://api.nuget.org/v3/registration5-gz-semver2/sensenet.tools/index.json
         var url = $"https://api.nuget.org/v3/registration5-gz-semver2/{package.Id?.ToLowerInvariant()}/index.json";
 
-        using HttpClient httpClient = _httpClientFactory.CreateClient();
+        using var httpClient = _httpClientFactory.CreateClient();
 
-        string? jsonResponse = null;
-        //using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
-        using (var response = await httpClient.GetStreamAsync(url))
-        using (GZipStream gzipStream = new GZipStream(response, CompressionMode.Decompress))
-        using (StreamReader sr = new StreamReader(gzipStream))
-        {
-            jsonResponse = await sr.ReadToEndAsync();
-        }
+        await using var response = await httpClient.GetStreamAsync(url);
+        await using GZipStream gzipStream = new GZipStream(response, CompressionMode.Decompress);
+        using StreamReader sr = new StreamReader(gzipStream);
+        var jsonResponse = await sr.ReadToEndAsync();
+
         var result = JsonConvert.DeserializeObject<PackageRegistration>(jsonResponse);
-
         return result ?? new();
     }
 }

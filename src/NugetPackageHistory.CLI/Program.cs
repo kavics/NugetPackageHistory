@@ -48,12 +48,12 @@ builder.Services.AddTransient<NugetPackageHistoryService>();
 using IHost host = builder.Build();
 
 var historyService = host.Services.GetRequiredService<NugetPackageHistoryService>();
-foreach (var latestPackage in await historyService.GetLatestPackages())
+var history = await historyService.GetEcosystemHistory("sensenet");
+foreach (var package in history.Packages)
 {
-    Console.WriteLine($"{latestPackage.Id} {latestPackage.Version}");
-    var registration = await historyService.GetPackageRegistration(latestPackage);
-    foreach (var package in registration.Items[0].Items)
+    Console.WriteLine($"{package.PackageId}");
+    foreach (var release in package.Releases)
     {
-        Console.WriteLine($"  {package.CatalogEntry?.Version}\t{package.CatalogEntry?.Published}");
+        Console.WriteLine($"  {release.Date:yyyy-MM-dd}\t{release.Version}");
     }
 }
