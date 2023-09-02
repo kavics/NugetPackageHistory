@@ -2,8 +2,15 @@
 
 public class Release
 {
-    public string? Version { get; set; }
-    public DateTime? Date { get; set; }
+    public string? Id => PackageDetails.Id;
+    public string? Version => PackageDetails.Version;
+    public DateTime? Date => PackageDetails.Published;
+    public PackageDetails PackageDetails { get; }
+
+    public Release(PackageDetails packageDetails)
+    {
+        PackageDetails = packageDetails;
+    }
 }
 public class PackageHistory
 {
@@ -18,11 +25,7 @@ public class PackageHistory
         PackageRegistration = packageRegistration;
         PackageId = latestPackage.Id ?? "unknown";
         Releases = packageRegistration.Items[0].Items
-            .Select(x => new Release
-            {
-                Version = x.CatalogEntry?.Version,
-                Date = x.CatalogEntry?.Published
-            })
+            .Select(x => new Release(x.CatalogEntry ?? new PackageDetails()))
             .ToList();
     }
 }
@@ -36,5 +39,10 @@ public class EcosystemHistory
     {
         Id = id;
         Packages = packages;
+    }
+
+    public IEnumerable<Release> GetTimeLine()
+    {
+        return Packages.SelectMany(p => p.Releases).OrderBy(r => r.Date);
     }
 }
